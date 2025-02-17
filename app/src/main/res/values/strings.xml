@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">NewsApp2025</string>
+    <string name="world">Мир</string>
+    <string name="today">Сегодня\n</string>
+    <string name="yesterday">Вчера</string>
+    <string name="you_have_seen_all_the_news">Вы просмотрели все новости</string>
+    <string name="no_news_found">Новости не найдены</string>
+    <string name="news_image">News Image</string>
+    <string name="article_image">Article Image</string>
+</resources>
