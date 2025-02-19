@@ -7,4 +7,11 @@
     <string name="no_news_found">Новости не найдены</string>
     <string name="news_image">News Image</string>
     <string name="article_image">Article Image</string>
+    <string name="sport">Спорт</string>
+    <string name="business">Бизнес</string>
+    <string name="science">Наука</string>
+    <string name="health">Здоровье</string>
+    <string name="entertainment">Развлечение</string>
+    <string name="technology">Технология</string>
+    <string name="retry">Попробовать ещё раз</string>
 </resources>

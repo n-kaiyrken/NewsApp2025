@@ -2,75 +2,72 @@ package kz.nkaiyrken.newsapp2025.presentation.newslist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kz.nkaiyrken.newsapp2025.domain.model.NewsResult
 import kz.nkaiyrken.newsapp2025.domain.usecase.GetTopHeadlinesUseCase
 import kz.nkaiyrken.newsapp2025.domain.usecase.LoadNextHeadlinesUseCase
 import kz.nkaiyrken.newsapp2025.domain.usecase.SetCategoryUseCase
-import kz.nkaiyrken.newsapp2025.extensions.mergeWith
+import kz.nkaiyrken.newsapp2025.extensions.tryToUpdate
+import kz.nkaiyrken.newsapp2025.presentation.NewsCategory
 import javax.inject.Inject
 
 class NewsListViewModel @Inject constructor(
-    val getTopHeadlinesUseCase: GetTopHeadlinesUseCase,
-    val loadNextHeadlinesUseCase: LoadNextHeadlinesUseCase,
-    val setCategoryUseCase: SetCategoryUseCase,
+    getTopHeadlinesUseCase: GetTopHeadlinesUseCase,
+    private val loadNextHeadlinesUseCase: LoadNextHeadlinesUseCase,
+    private val setCategoryUseCase: SetCategoryUseCase,
 ) : ViewModel() {
 
     private val topHeadlinesFlow = getTopHeadlinesUseCase()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = NewsResult(isInitialResult = true)
+        )
 
-    private val uiEventFlow = MutableSharedFlow<NewsListScreenState.Content>()
+    private val uiEventFlow = MutableStateFlow(NewsListScreenState.Data(emptyList()))
 
-    val screenState = topHeadlinesFlow
-        .map { newsResult ->
-            if (newsResult == null) NewsListScreenState.Loading
-            else NewsListScreenState.Content(articles = newsResult.articles)
+    val screenState = combine(
+        topHeadlinesFlow,
+        uiEventFlow
+    ) { newsResult, uiState ->
+        when {
+            newsResult.isInitialResult -> NewsListScreenState.Loading
+            newsResult.isLoadingFailed -> uiState.copy(isLoadingFailed = true)
+            else -> uiState.copy(
+                articles = newsResult.articles,
+                nextDataIsLoading = false,
+                isLastPage = newsResult.isLastPage,
+            )
         }
-        .onStart { emit(NewsListScreenState.Loading) }
-        .mergeWith(uiEventFlow)
+    }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            NewsListScreenState.Loading
+        )
 
     fun loadNextNews() {
         viewModelScope.launch {
-            val currentResult = topHeadlinesFlow.value ?: return@launch
-            if (currentResult.isLastPage) {
-                uiEventFlow.emit(
-                    NewsListScreenState.Content(
-                        articles = currentResult.articles,
-                        isLastPage = true
-                    )
-                )
-                return@launch
-            } else {
-                uiEventFlow.emit(
-                    NewsListScreenState.Content(
-                        articles = currentResult.articles,
-                        nextDataIsLoading = true
-                    )
-                )
-                loadNextHeadlinesUseCase()
+            val currentResult = topHeadlinesFlow.value
+            if (currentResult.isLastPage || currentResult.isLoadingFailed) return@launch
+            uiEventFlow.tryToUpdate {
+                it.copy(nextDataIsLoading = true)
             }
+            loadNextHeadlinesUseCase()
         }
+    }
 
-        fun setCategory(newCategory: String) {
-
-            setCategoryUseCase(newCategory)
+    fun setCategory(newCategory: String) {
+        uiEventFlow.tryToUpdate {
+            it.copy(
+                selectedCategory = NewsCategory.fromId(newCategory),
+                articles = emptyList()
+            )
         }
-//        private suspend fun updateScreenState(update: (NewsListScreenState.Content) -> NewsListScreenState) {
-//            uiEventFlow.emit { currentState ->
-//                if (currentState is NewsListScreenState.Content) update(currentState) else currentState
-//            }
-//        }
-
-//        private fun NewsListScreenState.Content.copyOrSame(
-//            isLastPage: Boolean? = null,
-//            nextDataIsLoading: Boolean? = null,
-//        ): NewsListScreenState.Content {
-//            return this.copy(
-//                isLastPage = isLastPage ?: this.isLastPage,
-//                nextDataIsLoading = nextDataIsLoading ?: this.nextDataIsLoading
-//            )
-//        }
-
+        setCategoryUseCase(newCategory)
     }
 }

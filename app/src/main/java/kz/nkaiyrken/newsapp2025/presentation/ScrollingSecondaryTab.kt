@@ -8,13 +8,14 @@ import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun ScrollingSecondaryTab(
-    categories: List<String>,
-    selectedCategory: String,
+    categories: List<NewsCategory>,
+    selectedCategory: NewsCategory,
     onCategorySelected: (String) -> Unit
 ) {
     ScrollableTabRow(
@@ -32,10 +33,10 @@ fun ScrollingSecondaryTab(
         categories.forEach { category ->
             Tab(
                 selected = selectedCategory == category,
-                onClick = { onCategorySelected(category) },
+                onClick = { onCategorySelected(category.id) },
                 text = {
                     Text(
-                        text = category,
+                        text = stringResource(id = category.displayNameRes),
                         style = MaterialTheme.typography.bodyMedium.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
