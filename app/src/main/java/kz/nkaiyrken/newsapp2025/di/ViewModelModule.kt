@@ -6,6 +6,7 @@ import dagger.Module
 import dagger.multibindings.IntoMap
 import kz.nkaiyrken.newsapp2025.presentation.newsdetails.NewsDetailsViewModel
 import kz.nkaiyrken.newsapp2025.presentation.newslist.NewsListViewModel
+import kz.nkaiyrken.newsapp2025.presentation.profile.ProfileViewModel
 
 @Module
 interface ViewModelModule {
@@ -19,4 +20,9 @@ interface ViewModelModule {
     @ViewModelKey(NewsDetailsViewModel::class)
     @Binds
     fun bindNewsDetailsViewModel(viewModel: NewsDetailsViewModel): ViewModel
+
+    @IntoMap
+    @ViewModelKey(ProfileViewModel::class)
+    @Binds
+    fun bindProfileViewModel(viewModel: ProfileViewModel): ViewModel
 }

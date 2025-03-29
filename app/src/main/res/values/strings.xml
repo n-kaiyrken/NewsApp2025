@@ -14,4 +14,10 @@
     <string name="entertainment">Развлечение</string>
     <string name="technology">Технология</string>
     <string name="retry">Попробовать ещё раз</string>
+    <string name="exit">Выйти</string>
+    <string name="notifications">Уведомления</string>
+    <string name="faq">FAQ / Помощь</string>
+    <string name="transaction_history">История транзакций</string>
+    <string name="accounts_settings">Настройки аккаунта</string>
+    <string name="payment_methods">Способы оплаты</string>
 </resources>
