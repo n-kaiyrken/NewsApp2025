@@ -16,6 +16,7 @@ navigationVersion = "2.7.2"
 daggerVersion = "2.48"
 coilVersion = "2.4.0"
 kspVersion = "1.9.0-1.0.13"
+protoliteWellKnownTypes = "18.0.1"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -56,6 +57,7 @@ dagger-compiler = { group = "com.google.dagger", name = "dagger-compiler", versi
 
 # Coil
 coil-compose = { group = "io.coil-kt", name = "coil-compose", version.ref = "coilVersion" }
+protolite-well-known-types = { group = "com.google.firebase", name = "protolite-well-known-types", version.ref = "protoliteWellKnownTypes" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

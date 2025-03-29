@@ -25,6 +25,7 @@ fun CustomTopAppBar(
     onLanguageSelected: (String) -> Unit,
     onProfileClick: () -> Unit,
     canNavigateBack: Boolean = false,
+    showProfileIcon: Boolean = true
 ) {
     TopAppBar(
         title = {
@@ -73,12 +74,14 @@ fun CustomTopAppBar(
             }
         },
         actions = {
-            IconButton(onClick = onProfileClick) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = "User Profile",
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
+            if (showProfileIcon) {
+                IconButton(onClick = onProfileClick) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "User Profile",
+                        tint = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(

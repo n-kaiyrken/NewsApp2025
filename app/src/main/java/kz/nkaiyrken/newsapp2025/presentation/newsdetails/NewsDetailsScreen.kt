@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,7 +52,7 @@ fun NewsDetailsScreen(
     Box(
         modifier = Modifier.padding(paddings)
     ) {
-        when (val currentState = screenState.value) {
+        when (screenState.value) {
             is NewsDetailsScreenState.Initial -> { /* Пустой экран или загрузка */
             }
             is NewsDetailsScreenState.Loading -> {
@@ -64,7 +63,7 @@ fun NewsDetailsScreen(
                     CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
-            is NewsDetailsScreenState.Content -> {
+            is NewsDetailsScreenState.Data -> {
                 NewsDetailsScreenContent(article = article)
             }
         }

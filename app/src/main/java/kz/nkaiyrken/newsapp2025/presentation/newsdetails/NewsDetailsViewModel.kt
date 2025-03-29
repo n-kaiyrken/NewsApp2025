@@ -6,6 +6,6 @@ import javax.inject.Inject
 
 class NewsDetailsViewModel @Inject constructor() : ViewModel() {
 
-    val screenState = MutableStateFlow<NewsDetailsScreenState>(NewsDetailsScreenState.Content)
+    val screenState = MutableStateFlow<NewsDetailsScreenState>(NewsDetailsScreenState.Data)
 
 }

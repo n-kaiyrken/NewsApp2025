@@ -14,24 +14,28 @@ import kz.nkaiyrken.newsapp2025.presentation.newslist.NewsListScreen
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
-
     val navigationState = rememberNavigationState()
+    val currentBackStackEntry by navigationState.navHostController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    val canNavigateBack = currentRoute != Screens.NewsList.route
+    val showProfileIcon = currentRoute != Screens.Profile.route
 
     Scaffold(
         topBar = {
-            val currentBackStackEntry by navigationState.navHostController.currentBackStackEntryAsState()
-            val canNavigateBack = currentBackStackEntry?.destination?.route != "news_list"
             CustomTopAppBar(
                 canNavigateBack = canNavigateBack,
                 onNavigationIconClick = {
                     if (canNavigateBack) {
                         navigationState.navHostController.popBackStack()
                     } else {
-
+                        // Открываем меню или другие действия
                     }
                 },
                 onLanguageSelected = {},
-                onProfileClick = {},
+                onProfileClick = {
+                    navigationState.navigateTo(Screens.Profile.route)
+                },
+                showProfileIcon = showProfileIcon
             )
         }
     ) { innerPadding ->
@@ -53,6 +57,5 @@ fun MainScreen() {
                 )
             },
         )
-
     }
 }

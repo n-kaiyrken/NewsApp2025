@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -23,10 +24,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.State
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,10 +43,13 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kz.nkaiyrken.newsapp2025.R
 import kz.nkaiyrken.newsapp2025.domain.model.Article
 import kz.nkaiyrken.newsapp2025.domain.model.DateInfo
 import kz.nkaiyrken.newsapp2025.getApplicationComponent
+import kz.nkaiyrken.newsapp2025.presentation.NewsCategory
 import kz.nkaiyrken.newsapp2025.presentation.ScrollingSecondaryTab
 import kz.nkaiyrken.newsapp2025.ui.utils.formatDateString
 
@@ -58,41 +63,24 @@ fun NewsListScreen(
     val viewModel: NewsListViewModel = viewModel(factory = component.getViewModelFactory())
     val screenState = viewModel.screenState.collectAsState(NewsListScreenState.Initial)
 
-    NewsListScreenContent(
-        viewModel = viewModel,
-        screenState = screenState,
-        onArticleClick = onArticleClick,
-        paddings = paddings,
-    )
-}
-
-@Composable
-fun NewsListScreenContent(
-    viewModel: NewsListViewModel,
-    screenState: State<NewsListScreenState>,
-    onArticleClick: (Article) -> Unit,
-    paddings: PaddingValues,
-) {
     Box(
         modifier = Modifier.padding(paddings)
     ) {
 
         when (val currentScreenState = screenState.value) {
-            is NewsListScreenState.Initial -> {}
-            is NewsListScreenState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+            is NewsListScreenState.Initial -> {
+                NewsListScreenErrorContent()
             }
-            is NewsListScreenState.Content -> {
-                NewsList(
+            is NewsListScreenState.Loading -> {
+                NewsListScreenLoadingContent()
+            }
+
+            is NewsListScreenState.Data -> {
+                NewsListScreenContent(
                     viewModel = viewModel,
+                    screenState = currentScreenState,
                     onArticleClick = onArticleClick,
-                    newsList = currentScreenState.articles,
-                    nextDataIsLoading = currentScreenState.nextDataIsLoading,
-                    isLastPage = currentScreenState.isLastPage,
+                    paddings = paddings
                 )
             }
         }
@@ -100,88 +88,148 @@ fun NewsListScreenContent(
 }
 
 @Composable
-fun NewsList(
-    viewModel: NewsListViewModel = viewModel(),
+fun NewsListScreenContent(
+    viewModel: NewsListViewModel,
+    screenState: NewsListScreenState.Data,
     onArticleClick: (Article) -> Unit,
-    newsList: List<Article>,
-    nextDataIsLoading: Boolean,
-    isLastPage: Boolean,
+    paddings: PaddingValues,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-    ) {
+    Column(modifier = Modifier.fillMaxSize()) {
+        val categories = listOf(
+            NewsCategory.Sport,
+            NewsCategory.Business,
+            NewsCategory.Science,
+            NewsCategory.Health,
+            NewsCategory.Entertainment,
+            NewsCategory.Technology
+        )
 
-//        ScrollingSecondaryTab(
-//            categories = categories,
-//            selectedCategory = selectedCategory,
-//            onCategorySelected = { viewModel.setCategory(it) }
-//        )
-        Text(
-            text = stringResource(R.string.world),
-            style = MaterialTheme.typography.headlineMedium.copy(
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSurface
-            ),
-            modifier = Modifier
-                .padding(16.dp)
+        ScrollingSecondaryTab(
+            categories = categories,
+            selectedCategory = screenState.selectedCategory,
+            onCategorySelected = { viewModel.setCategory(it) }
         )
 
         HorizontalDivider(thickness = 1.dp, color = MaterialTheme.colorScheme.outline)
 
-        if (newsList.isEmpty()) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = stringResource(R.string.no_news_found),
-                    modifier = Modifier
-                        .padding(16.dp),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-            ) {
-                items(
-                    items = newsList,
-                    key = { it.title }
-                ) { newsItem ->
-                    NewsCardItem(
-                        item = newsItem,
-                        onClick = { onArticleClick(newsItem) }
-                    )
-                }
-                item {
-                    when {
-                        isLastPage -> Text(
-                            text = stringResource(R.string.you_have_seen_all_the_news),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+        NewsList(
+            viewModel = viewModel,
+            onArticleClick = onArticleClick,
+            newsList = screenState.articles,
+            nextDataIsLoading = screenState.nextDataIsLoading,
+            isLastPage = screenState.isLastPage,
+            isLoadingFailed = screenState.isLoadingFailed,
+        )
+    }
+}
 
-                        nextDataIsLoading -> Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .wrapContentHeight()
-                                .padding(16.dp),
-                            contentAlignment = Alignment.Center,
-                        ) { CircularProgressIndicator(color = MaterialTheme.colorScheme.primary) }
+@Composable
+fun NewsList(
+    viewModel: NewsListViewModel,
+    onArticleClick: (Article) -> Unit,
+    newsList: List<Article>,
+    nextDataIsLoading: Boolean,
+    isLastPage: Boolean,
+    isLoadingFailed: Boolean,
+) {
 
-                        else -> SideEffect { viewModel.loadNextNews() }
-                    }
+    if (newsList.isEmpty() && isLoadingFailed) {
+        // Если список пустой, показываем соответствующее сообщение
+        NewsListScreenErrorContent()
+        return
+    }
+
+    val listState = rememberLazyListState()
+
+    // Отслеживаем индекс последнего видимого элемента для подгрузки следующей страницы
+    LaunchedEffect(listState, newsList.size, nextDataIsLoading, isLastPage) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .filterNotNull()
+            .distinctUntilChanged()
+            .collect { lastVisibleIndex ->
+                if (lastVisibleIndex >= newsList.size - 1 && !nextDataIsLoading && !isLastPage) {
+                    viewModel.loadNextNews()
                 }
             }
+    }
+
+    LazyColumn(
+        state = listState,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        items(
+            items = newsList,
+            key = { it.url }
+        ) { newsItem ->
+            NewsCardItem(
+                item = newsItem,
+                onClick = { onArticleClick(newsItem) }
+            )
+        }
+        item {
+            NewsListFooter(
+                isLastPage = isLastPage,
+                isLoading = nextDataIsLoading,
+                isLoadingFailed = isLoadingFailed,
+                onRetryClick = { /* ... */ }
+            )
+        }
+    }
+}
+
+@Composable
+fun NewsListScreenErrorContent() {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = stringResource(R.string.no_news_found),
+            modifier = Modifier.padding(16.dp),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+fun NewsListFooter(
+    isLastPage: Boolean,
+    isLoading: Boolean,
+    isLoadingFailed: Boolean,
+    onRetryClick: () -> Unit,
+) {
+    when {
+        isLastPage -> Text(
+            text = stringResource(R.string.you_have_seen_all_the_news),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+
+        isLoading -> Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .wrapContentHeight()
+                .padding(16.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+        }
+
+        isLoadingFailed -> TextButton(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            onClick = onRetryClick
+        ) {
+            Text(stringResource(R.string.retry))
         }
     }
 }
@@ -283,8 +331,18 @@ fun NewsListPreview() {
         },
         nextDataIsLoading = false,
         viewModel = viewModel(),
-        isLastPage = false
+        isLastPage = false,
+        isLoadingFailed = false,
     )
+}
+
+@Composable
+fun NewsListScreenLoadingContent() {
+    Box(
+        modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
+    }
 }
 
 @Composable
